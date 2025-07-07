@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, render_template, redirect, url_for, session
-from ml_model import predict_packet_with_confidence
+from network_sniffer.ml_model import predict_packet_with_confidence
 from dotenv import load_dotenv
 import os
 import cohere
