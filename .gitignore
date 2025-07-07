@@ -1,0 +1,12 @@
+# Environment variables
+.env
+
+# Python bytecode files
+__pycache__/
+*.pyc
+
+# macOS system files
+.DS_Store
+
+# Machine learning model files (optional)
+*.pkl
