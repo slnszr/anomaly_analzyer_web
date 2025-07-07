@@ -1,0 +1,7 @@
+Flask
+scapy
+pandas
+matplotlib
+python-dotenv
+cohere
+gunicorn
