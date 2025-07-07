@@ -6,3 +6,4 @@ python-dotenv
 cohere
 gunicorn
 scikit-learn
+imbalanced-learn
