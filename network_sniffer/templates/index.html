@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Anomalyze – Intelligent Anomaly Analyzer</title>
+  <!-- ── Fonts & Icons ──────────────────────────────────────────────── -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- ── Base Styles ────────────────────────────────────────────────── -->
+  <style>
+    /* ---------- CSS Variables ---------- */
+    :root {
+      --primary: #16324F;   /* corporate navy */
+      --secondary: #00B5D6; /* bright cyan accent */
+      --bg-light: #f5f7fa;
+      --bg-dark: #121212;
+      --text-light: #1d1d1d;
+      --text-dark: #f0f0f0;
+      --card-radius: 10px;
+      --shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+
+    /* ---------- Global ---------- */
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: var(--bg-light);
+      color: var(--text-light);
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      transition: background 0.3s, color 0.3s;
+    }
+    .dark-mode {
+      background-color: var(--bg-dark);
+      color: var(--text-dark);
+    }
+
+    a { text-decoration: none; color: inherit; }
+    h1, h2, h3 { font-weight: 600; }
+
+    /* ---------- Layout ---------- */
+    .header {
+      background: var(--primary);
+      color: white;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .header__brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header__brand img {
+      height: 36px;
+    }
+    .header__actions {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .header button {
+      background: var(--secondary);
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      color: white;
+      font-weight: 500;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .header button:hover { opacity: 0.85; }
+
+    .container {
+      flex: 1;
+      width: 100%;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    /* ---------- Card ---------- */
+    .card {
+      background: white;
+      border-radius: var(--card-radius);
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+    .dark-mode .card {
+      background: #1E1E1E;
+      box-shadow: none;
+    }
+
+    /* ---------- Prediction Section ---------- */
+    .predict-form {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    .predict-form input {
+      width: 180px;
+      padding: 8px 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+    .predict-form button {
+      background: var(--primary);
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .predict-form button:hover { background: #0e2236; }
+
+    #result {
+      text-align: center;
+      margin-bottom: 24px;
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* ---------- Visualization ---------- */
+    #visualization-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    canvas { width: 100% !important; height: 300px !important; }
+
+    /* ---------- Table ---------- */
+    #table-container { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 8px 10px;
+      border-bottom: 1px solid #e0e0e0;
+      text-align: left;
+    }
+    th { background: #f0f4f7; }
+    .dark-mode th { background: #1b1b1b; }
+    .dark-mode th, .dark-mode td { border-color: #444; }
+
+    .action-btns button {
+      padding: 4px 8px;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .delete-btn { background: #ff4d4f; color: #fff; }
+    .copy-btn { background: #4caf50; color: #fff; }
+
+    /* ---------- Chatbot ---------- */
+    #chatbot-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      width: 320px;
+      font-family: inherit;
+      z-index: 999;
+    }
+    #chatbot-header {
+      background: var(--primary);
+      color: white;
+      padding: 10px 12px;
+      border-radius: 10px 10px 0 0;
+      cursor: pointer;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    #chatbot-box {
+      display: none;
+      flex-direction: column;
+      height: 340px;
+      background: white;
+      border: 1px solid #ccc;
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+    }
+    .dark-mode #chatbot-box {
+      background: #1E1E1E;
+      border-color: #444;
+    }
+    #chatbot-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+    }
+    #chatbot-input {
+      border: none;
+      border-top: 1px solid #eee;
+      padding: 10px 12px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+    .bot-message, .user-message {
+      padding: 8px 12px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      line-height: 1.4;
+    }
+    .bot-message { background: #e8f4fd; }
+    .user-message { background: #d9f7d4; text-align: right; }
+    .dark-mode .bot-message { background: #263648; color: var(--text-dark); }
+    .dark-mode .user-message { background: #2E3B2F; color: var(--text-dark); }
+
+    /* ---------- Footer ---------- */
+    .footer {
+      background: #f0f4f7;
+      padding: 16px 24px;
+      text-align: center;
+      font-size: 0.85rem;
+    }
+    .dark-mode .footer { background: #1b1b1b; }
+  </style>
+</head>
+<body>
+  <!-- ── Header ─────────────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header__brand">
+      Anomalyze
+    </div>
+    <div class="header__actions">
+      <a href="/about"><button>About Us</button></a>
+      <label style="display:flex;align-items:center; gap:6px; color:white; cursor:pointer;">
+        <span style="font-size:0.9rem;">Dark Mode</span>
+        <input type="checkbox" id="darkToggle" onchange="toggleDarkMode()" />
+      </label>
+      <a href="/logout"><button>Log Out</button></a>
+    </div>
+  </header>
+
+  <!-- ── Main Content ───────────────────────────────────────────────── -->
+  <main class="container">
+    <section class="card">
+      <h2 style="text-align:center; margin-top:0;">🛡️ Anomalyze – Intelligent Anomaly Analyzer</h2>
+      <div class="predict-form">
+        <input type="number" id="size" placeholder="Packet Size (bytes)" />
+        <button onclick="sendPacket()">Predict</button>
+      </div>
+      <p id="result"></p>
+      <div id="visualization-container">
+        <canvas id="packetChart"></canvas>
+        <div id="table-container">
+          <button style="margin-bottom:8px" onclick="downloadTable()">Download Table</button>
+          <table id="historyTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Packet Size (bytes)</th>
+                <th>Prediction</th>
+                <th>Confidence (%)</th>
+                <th>Timestamp</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ── Chatbot ─────────────────────────────────────────────────────── -->
+  <div id="chatbot-container">
+    <div id="chatbot-header" onclick="toggleChatbot()">🤖 Need help? Chat with us</div>
+    <div id="chatbot-box">
+      <div id="chatbot-messages"></div>
+      <input type="text" id="chatbot-input" placeholder="Type your question..." onkeydown="if(event.key==='Enter') sendMessage()" />
+    </div>
+  </div>
+
+  <!-- ── Footer ─────────────────────────────────────────────────────── -->
+  <footer class="footer">© 2025 Anomalyze Inc. All rights reserved.</footer>
+
+  <!-- ── Scripts (same JS logic as original) ────────────────────────── -->
+  <script>
+    const ctx = document.getElementById("packetChart").getContext("2d");
+    const chart = new Chart(ctx, {
+      type: "bar",
+      data: { labels: [], datasets: [{ label: "Packet Size (bytes)", data: [], backgroundColor: "#00b5d6" }] },
+      options: { scales: { y: { beginAtZero: true } } }
+    });
+
+    let rowCounter = 0;
+
+    function toggleDarkMode() {
+      document.body.classList.toggle("dark-mode");
+    }
+
+    function sendPacket() {
+      const size = document.getElementById("size").value;
+      if (!size) return;
+
+      fetch("/predict", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ packet_size: parseInt(size) })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const result = document.getElementById("result");
+        const label = data.prediction;
+        const confidence = data.confidence;
+
+        result.textContent = `${label === "Anomalous" ? "🚨" : "✅"} Prediction: ${label} (${confidence}% confidence)`;
+        result.style.color = label === "Anomalous" ? "#e53935" : "#2e7d32";
+
+        // Update history list (optional if you still want <ul>)
+
+        // Update table
+        rowCounter++;
+        const tbody = document.getElementById("historyTable").querySelector("tbody");
+        const row = tbody.insertRow(0);
+        row.insertCell(0).textContent = rowCounter;
+        row.insertCell(1).textContent = size;
+        row.insertCell(2).textContent = label;
+        row.insertCell(3).textContent = confidence;
+        row.insertCell(4).textContent = new Date().toLocaleString();
+        row.insertCell(5).innerHTML = `<div class="action-btns"><button class="delete-btn" onclick="this.closest('tr').remove()">delete</button><button class="copy-btn" onclick="copyRow(this)">copy</button></div>`;
+
+        // Update chart
+        chart.data.labels.push(chart.data.labels.length + 1);
+        chart.data.datasets[0].data.push(parseInt(size));
+        chart.update();
+      });
+    }
+
+    function copyRow(btn) {
+      const row = btn.closest("tr");
+      const text = Array.from(row.cells).slice(1, 5).map(cell => cell.textContent).join(" | ");
+      navigator.clipboard.writeText(text);
+      alert("Copied: " + text);
+    }
+
+    function downloadTable() {
+      const rows = document.querySelectorAll("#historyTable tr");
+      let csv = "";
+      rows.forEach(row => {
+        const cols = row.querySelectorAll("th, td");
+        const data = Array.from(cols).map(col => col.textContent);
+        csv += data.join(",") + "\n";
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "prediction_history.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function toggleChatbot() {
+      const box = document.getElementById("chatbot-box");
+      box.style.display = box.style.display === "none" ? "flex" : "none";
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("chatbot-input");
+      const message = input.value.trim();
+      if (!message) return;
+
+      const messages = document.getElementById("chatbot-messages");
+      messages.innerHTML += `<div class="user-message">${message}</div>`;
+
+      fetch("/chatbot", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message })
+      })
+      .then(res => res.json())
+      .then(data => {
+        const response = data.response || "I'm not sure how to help with that.";
+        messages.innerHTML += `<div class="bot-message">${response}</div>`;
+        messages.scrollTop = messages.scrollHeight;
+      });
+
+      input.value = "";
+    }
+
+    window.onload = () => {
+      document.getElementById("chatbot-box").style.display = "none";
+    };
+  </script>
+</body>
+</html>
